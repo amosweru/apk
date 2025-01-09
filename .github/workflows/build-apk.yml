@@ -3,7 +3,6 @@ name: Build APK
 on:
   repository_dispatch:
     types: [build_apk]
-
 jobs:
   build:
     runs-on: ubuntu-latest
