@@ -1,47 +1,69 @@
 name: Build APK
 
 on:
-  push:
-    branches:
-      - main  # Trigger workflow when pushing to the main branch
-  pull_request:
-    branches:
-      - main  # Trigger workflow for pull requests targeting the main branch
+  repository_dispatch:
+    types: [build_apk]
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # The environment where the workflow will run
-    
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v2  # Check out the repository code so the next steps can access it
+      - name: Checkout Repository
+        uses: actions/checkout@v2
 
-      - name: Set up JDK 11
-        uses: actions/setup-java@v2
+      - name: Set up Java JDK 11
+        uses: actions/setup-java@v1
         with:
-          java-version: '11'  # You can specify a different JDK version depending on your Android project setup
+          java-version: '11'
 
-      - name: Set up Gradle Cache
-        uses: gradle/gradle-build-action@v2
-        with:
-          cache: true  # This caches Gradle dependencies to speed up builds
-
-      - name: Start build timing
-        run: echo "Start time: $(date)"
-
-      - name: Build APK with Gradle
+      - name: Set up Android SDK
         run: |
-          start_time=$(date +%s)  # Capture start time in seconds
-          ./gradlew assembleRelease  # For building the release version, or use assembleDebug for debug version
-          end_time=$(date +%s)  # Capture end time in seconds
-          elapsed_time=$((end_time - start_time))  # Calculate elapsed time in seconds
-          echo "Build took $elapsed_time seconds"
+          sudo apt update
+          sudo apt install -y unzip
+          wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
+          unzip commandlinetools-linux-8512546_latest.zip
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "build-tools;30.0.3" "platforms;android-30"
 
-      - name: End build timing
-        run: echo "End time: $(date)"
+      - name: Set up Gradle
+        run: |
+          wget https://services.gradle.org/distributions/gradle-6.7-bin.zip
+          unzip gradle-6.7-bin.zip
+          sudo mv gradle-6.7 /opt/gradle
+          export PATH=$PATH:/opt/gradle/bin
 
-      - name: Upload APK as artifact
+      - name: Build APK with WebView for the URL
+        run: |
+          # Set up the Android project (create Android app with WebView)
+          mkdir -p android_project
+          cd android_project
+          gradle init --type basic
+          
+          # Modify build.gradle, app files, etc., to include WebView and the URL
+          echo "import android.os.Bundle;
+import androidx.appcompat.app.AppCompatActivity;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+
+public class MainActivity extends AppCompatActivity {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        
+        WebView myWebView = findViewById(R.id.webview);
+        myWebView.setWebViewClient(new WebViewClient());
+        myWebView.loadUrl('${{ github.event.client_payload.url }}');
+    }
+}" > src/main/java/com/example/myapplication/MainActivity.java
+
+          # Build the APK
+          ./gradlew assembleRelease
+
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: apk-artifact  # Name of the uploaded artifact
-          path: app/build/outputs/apk/release/*.apk  # Path to the APK file
+          name: apk-file
+          path: app/build/outputs/apk/release/app-release.apk
