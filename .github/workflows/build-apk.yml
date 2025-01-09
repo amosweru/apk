@@ -3,11 +3,11 @@ name: Build APK
 on:
   push:
     branches:
-      - main  # Trigger workflow when pushing to the main branch
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # The environment where the workflow will run
+    runs-on: ubuntu-24.04  # Use the latest Ubuntu version
 
     steps:
       - name: Checkout Repository
@@ -19,37 +19,25 @@ jobs:
           java-version: '17'
           distribution: 'adoptopenjdk'
 
-      - name: Set up Android SDK
+      - name: Install Android SDK
         run: |
           sudo apt update
-          sudo apt install -y unzip
+          sudo apt install -y unzip wget
           wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-          unzip commandlinetools-linux-8512546_latest.zip
-          mkdir -p $ANDROID_HOME/cmdline-tools
-          mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "build-tools;30.0.3" "platforms;android-30"
-
-      - name: Set up Gradle
-        run: |
-          wget https://services.gradle.org/distributions/gradle-6.7-bin.zip
-          unzip gradle-6.7-bin.zip
-          sudo mv gradle-6.7 /opt/gradle
-          export PATH=$PATH:/opt/gradle/bin
+          unzip commandlinetools-linux-8512546_latest.zip -d $HOME/android-sdk
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          mv cmdline-tools $HOME/android-sdk/cmdline-tools/latest
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "build-tools;30.0.3" "platforms;android-30"
 
       - name: Build APK
         run: |
-          mkdir -p android_project
+          # Change to your project directory
           cd android_project
-          gradle init --type basic
+          ./gradlew assembleRelease  # Or use assembleDebug for debugging
 
-          # Modify build.gradle, app files, etc., to include WebView and the URL
-
-          # Build the APK
-          ./gradlew assembleRelease
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v3  # Updated to the latest version (v3)
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
         with:
-          name: apk-file
-          path: app/build/outputs/apk/release/app-release.apk  # Path to your APK file
+          name: apk-artifact
+          path: app/build/outputs/apk/release/app-release.apk
