@@ -2,29 +2,29 @@ name: Build APK
 
 on:
   repository_dispatch:
-    types: [build_apk]  # This workflow can be triggered manually via a repository dispatch event
+    types: [build_apk]  # Trigger this workflow via repository dispatch event
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
+    runs-on: ubuntu-latest  # Use the latest Ubuntu environment
 
     steps:
-      # Step 1: Check out the repository code
+      # Step 1: Checkout the repository code
       - name: Checkout Repository
         uses: actions/checkout@v2
 
-      # Step 2: Set up JDK 17 for Android SDK tools (required for Android SDK Manager)
+      # Step 2: Set up JDK 17 (Required for Android SDK tools)
       - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
-          java-version: '17'  # Set the JDK version to 17
+          java-version: '17'  # Ensure we are using Java 17 to avoid class version issues
 
-      # Step 3: Install Android SDK tools (command-line tools)
+      # Step 3: Install Android SDK command-line tools
       - name: Install Android SDK tools
         run: |
           sudo apt update
           sudo apt install -y unzip wget
-          
+
           # Download and install Android Command-line Tools
           wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
           unzip commandlinetools-linux-8512546_latest.zip -d $HOME
@@ -37,11 +37,11 @@ jobs:
           export ANDROID_HOME=$HOME/Android
           export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
           
-          # Accept SDK licenses and install platform tools, build tools, and Android platforms
+          # Accept SDK licenses and install necessary tools
           yes | sdkmanager --licenses
           sdkmanager "platform-tools" "build-tools;30.0.3" "platforms;android-30"
 
-      # Step 4: Set up Gradle
+      # Step 4: Install Gradle
       - name: Install Gradle
         run: |
           wget https://services.gradle.org/distributions/gradle-7.4-bin.zip
@@ -55,15 +55,12 @@ jobs:
       # Step 5: Build the APK using Gradle
       - name: Build APK with Gradle
         run: |
-          # Ensure gradlew is executable
           chmod +x gradlew
-          
-          # Build the release APK (you can modify this if you want to build a debug APK)
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease  # Build the release APK
 
-      # Step 6: Upload the APK as an artifact
+      # Step 6: Upload APK Artifact
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v3
         with:
           name: apk-file
-          path: app/build/outputs/apk/release/app-release.apk  # Path to the APK file
+          path: app/build/outputs/apk/release/app-release.apk
