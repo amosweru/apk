@@ -41,7 +41,7 @@ jobs:
         run: ./gradlew assembleRelease  # Make sure your Gradle build file is in the root of the repo
 
       - name: Upload APK Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3  # Updated to v3
         with:
           name: apk-file
           path: app/build/outputs/apk/release/app-release.apk
