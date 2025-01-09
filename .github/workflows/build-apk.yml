@@ -1,5 +1,4 @@
 name: Build APK
-
 on:
   repository_dispatch:
     types: [build_apk]  # Triggered by manual repository dispatch (for example, API calls)
