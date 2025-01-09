@@ -2,13 +2,15 @@ name: Build APK
 
 on:
   repository_dispatch:
-    types: [build_apk]
+    types: [build_apk]  # Custom event type for triggering
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Cloud runner (Ubuntu)
+
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2  # Check out the code to the runner
 
       - name: Set up Java JDK 11
         uses: actions/setup-java@v1
@@ -35,30 +37,11 @@ jobs:
 
       - name: Build APK with WebView for the URL
         run: |
-          # Set up the Android project (create Android app with WebView)
           mkdir -p android_project
           cd android_project
           gradle init --type basic
-          
-          # Modify build.gradle, app files, etc., to include WebView and the URL
-          echo "import android.os.Bundle;
-import androidx.appcompat.app.AppCompatActivity;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
-
-public class MainActivity extends AppCompatActivity {
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        
-        WebView myWebView = findViewById(R.id.webview);
-        myWebView.setWebViewClient(new WebViewClient());
-        myWebView.loadUrl('${{ github.event.client_payload.url }}');
-    }
-}" > src/main/java/com/example/myapplication/MainActivity.java
-
-          # Build the APK
+          # Add your WebView code or modify build.gradle as needed
+          echo "import android.os.Bundle; import androidx.appcompat.app.AppCompatActivity; import android.webkit.WebView; import android.webkit.WebViewClient; public class MainActivity extends AppCompatActivity { @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); setContentView(R.layout.activity_main); WebView myWebView = findViewById(R.id.webview); myWebView.setWebViewClient(new WebViewClient()); myWebView.loadUrl('${{ github.event.client_payload.url }}'); }}" > src/main/java/com/example/myapplication/MainActivity.java
           ./gradlew assembleRelease
 
       - name: Upload APK Artifact
