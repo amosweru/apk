@@ -2,51 +2,68 @@ name: Build APK
 
 on:
   repository_dispatch:
-    types: [build_apk]  # Triggered by manual repository dispatch (for example, API calls)
+    types: [build_apk]  # This workflow can be triggered manually via a repository dispatch event
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # The environment where the workflow will run
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
 
     steps:
+      # Step 1: Check out the repository code
       - name: Checkout Repository
-        uses: actions/checkout@v2  # Check out the repository code
+        uses: actions/checkout@v2
 
-      - name: Set up Java JDK 17
+      # Step 2: Set up JDK 17 for Android SDK tools (required for Android SDK Manager)
+      - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
-          java-version: '17'  # Set the JDK version to 17 to support newer SDK tools
+          java-version: '17'  # Set the JDK version to 17
 
-      - name: Set up Android SDK
+      # Step 3: Install Android SDK tools (command-line tools)
+      - name: Install Android SDK tools
         run: |
           sudo apt update
           sudo apt install -y unzip wget
+          
+          # Download and install Android Command-line Tools
           wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
           unzip commandlinetools-linux-8512546_latest.zip -d $HOME
+          
+          # Set up Android SDK paths
           mkdir -p $HOME/Android/cmdline-tools
           mv cmdline-tools $HOME/Android/cmdline-tools/latest
+          
+          # Set environment variables for Android SDK
+          export ANDROID_HOME=$HOME/Android
+          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
+          
+          # Accept SDK licenses and install platform tools, build tools, and Android platforms
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "build-tools;30.0.3" "platforms;android-30"
 
-          # Ensure Java 17 is used for SDK Manager
-          export JAVA_HOME=$(/usr/libexec/java_home -v 17)
-          export PATH=$JAVA_HOME/bin:$PATH
+      # Step 4: Set up Gradle
+      - name: Install Gradle
+        run: |
+          wget https://services.gradle.org/distributions/gradle-7.4-bin.zip
+          unzip gradle-7.4-bin.zip
+          sudo mv gradle-7.4 /opt/gradle
+          export PATH=$PATH:/opt/gradle/bin
+          
+          # Verify Gradle installation
+          gradle -v
 
-          yes | $HOME/Android/cmdline-tools/latest/bin/sdkmanager --licenses
-          $HOME/Android/cmdline-tools/latest/bin/sdkmanager "platform-tools" "build-tools;30.0.3" "platforms;android-30"
-        env:
-          ANDROID_HOME: $HOME/Android  # Set ANDROID_HOME environment variable
-          PATH: $HOME/Android/cmdline-tools/latest/bin:$PATH  # Add sdkmanager to the PATH
-
-      - name: Ensure gradlew is executable
-        run: chmod +x gradlew  # Make sure the Gradle wrapper is executable
-
+      # Step 5: Build the APK using Gradle
       - name: Build APK with Gradle
         run: |
-          # Check if gradlew exists and is executable
-          ls -l ./gradlew
-          ./gradlew assembleRelease  # Build the APK
+          # Ensure gradlew is executable
+          chmod +x gradlew
           
+          # Build the release APK (you can modify this if you want to build a debug APK)
+          ./gradlew assembleRelease
+
+      # Step 6: Upload the APK as an artifact
       - name: Upload APK Artifact
-        uses: actions/upload-artifact@v3  # Updated to v3 as v2 is deprecated
+        uses: actions/upload-artifact@v3
         with:
           name: apk-file
           path: app/build/outputs/apk/release/app-release.apk  # Path to the APK file
