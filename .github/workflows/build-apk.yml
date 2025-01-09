@@ -3,50 +3,53 @@ name: Build APK
 on:
   push:
     branches:
-      - main   # Trigger workflow when pushing to the main branch
-  pull_request:
-    branches:
-      - main   # Trigger workflow for pull requests targeting the main branch
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest   # The environment where the workflow will run
-
+    runs-on: ubuntu-latest
+    
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v2   # Checkout the repository to the runner so the next steps can access it
+      - name: Checkout Repository
+        uses: actions/checkout@v2
 
-    - name: Set up Java 17
-      uses: actions/setup-java@v2   # Set up JDK 17
-      with:
-        java-version: '17'
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'  # Specify Java version
+          distribution: 'adoptopenjdk'  # Specify the distribution (e.g., adoptopenjdk, zulu, etc.)
 
-    - name: Install Android SDK
-      run: |
-        sudo apt update
-        sudo apt install -y unzip
-        wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-        unzip commandlinetools-linux-8512546_latest.zip
-        sudo mkdir -p /opt/android-sdk/cmdline-tools
-        sudo mv cmdline-tools /opt/android-sdk/cmdline-tools/latest
-        echo "export ANDROID_HOME=/opt/android-sdk" >> $GITHUB_ENV
-        echo "export PATH=\$PATH:/opt/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_ENV
-        yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
-        /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "build-tools;30.0.3" "platforms;android-30"
+      - name: Set up Android SDK
+        run: |
+          sudo apt update
+          sudo apt install -y unzip
+          wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
+          unzip commandlinetools-linux-8512546_latest.zip
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "build-tools;30.0.3" "platforms;android-30"
 
-    - name: Set up Gradle
-      run: |
-        wget https://services.gradle.org/distributions/gradle-7.5-bin.zip
-        unzip gradle-7.5-bin.zip
-        sudo mv gradle-7.5 /opt/gradle
-        echo "export PATH=\$PATH:/opt/gradle/bin" >> $GITHUB_ENV
+      - name: Set up Gradle
+        run: |
+          wget https://services.gradle.org/distributions/gradle-6.7-bin.zip
+          unzip gradle-6.7-bin.zip
+          sudo mv gradle-6.7 /opt/gradle
+          export PATH=$PATH:/opt/gradle/bin
 
-    - name: Build APK with Gradle
-      run: |
-        ./gradlew assembleRelease   # Build the release APK (use assembleDebug for debug APK)
+      - name: Build APK
+        run: |
+          mkdir -p android_project
+          cd android_project
+          gradle init --type basic
+          
+          # Modify the build.gradle, app files, etc., to include WebView and the URL
 
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: apk-artifact
-        path: app/build/outputs/apk/release/*.apk   # Path to your APK file
+          # Build the APK
+          ./gradlew assembleRelease
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: apk-file
+          path: app/build/outputs/apk/release/app-release.apk
