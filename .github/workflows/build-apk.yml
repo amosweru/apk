@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      website_url:
+        description: 'The website URL to trigger APK build'
+        required: true
+        default: 'http://example.com'
 
 jobs:
   build:
