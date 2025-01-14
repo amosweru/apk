@@ -1,1 +1,11 @@
+# Versions of dependencies
+kotlin.version=1.5.21
+coroutines.version=1.5.0
+serialization.version=1.2.2
+retrofit.version=2.9.0
+okhttp.version=4.9.1
+
+# Versions of plugins
+androidGradlePlugin.version=4.2.2
+kotlinGradlePlugin.version=1.5.21
 
